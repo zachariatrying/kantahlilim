@@ -1,0 +1,16 @@
+{
+  "name": "KanTahlilim — Cihaz İçi Tahlil Okuyucu",
+  "short_name": "KanTahlilim",
+  "description": "e-Nabız kan tahlili sonuçlarını sunucuya yüklemeden cihazında sade Türkçe ile takip et.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F4F7FB",
+  "theme_color": "#1D4ED8",
+  "icons": [
+    {
+      "src": "store-assets/kantahlilim_icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ]
+}
