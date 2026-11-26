@@ -384,8 +384,26 @@ export default function App() {
         )}
       </main>
 
-      <footer className="border-t border-[#111827]/20 py-4 text-center text-[11px] text-[#4B5563] px-4">
-        KanTahlilim bağımsız bir kişisel takip aracıdır; hiçbir resmî kamu kurumuyla bağlantısı yoktur. Tıbbi teşhis veya tedavi tavsiyesi değildir; sonuçlarınızı mutlaka hekiminizle değerlendirin.
+      <footer className="border-t border-[#111827]/20 py-4 text-center text-[11px] text-[#4B5563] px-4 space-y-1.5">
+        <p>
+          KanTahlilim tıbbi cihaz değildir (1219 sayılı Kanun &amp; TİTCK kapsamında tanı/tedavi sunmaz) ve hiçbir resmî
+          kamu kurumuyla bağlantısı yoktur. Acil durumlarda <strong>112 Acil</strong>&rsquo;i arayın; sonuçlarınızı
+          mutlaka hekiminizle değerlendirin.
+        </p>
+        <p className="flex flex-wrap justify-center gap-3">
+          <a href="https://medlineplus.gov/lab-tests/" target="_blank" rel="noopener noreferrer" className="underline">
+            MedlinePlus (NIH)
+          </a>
+          <a href="https://www.who.int/" target="_blank" rel="noopener noreferrer" className="underline">
+            WHO
+          </a>
+          <a href="https://www.turkbiyokimyadernegi.org.tr/" target="_blank" rel="noopener noreferrer" className="underline">
+            Türk Biyokimya Derneği
+          </a>
+          <a href="./privacy.html" className="underline font-bold">
+            Gizlilik &amp; KVKK
+          </a>
+        </p>
       </footer>
 
       {kvkkOpen && (
