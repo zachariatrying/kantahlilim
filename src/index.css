@@ -1,1 +1,56 @@
 @import "tailwindcss";
+
+:root {
+  --bg-archival: #faf8f5;
+  --bg-strip: #ffffff;
+  --ink-primary: #111827;
+  --ink-muted: #4b5563;
+  --ink-medical: #0f4c81;
+  --ink-carmine: #b91c1c;
+  --ink-optimal: #15803d;
+  --font-serif: "Newsreader", Georgia, serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-archival);
+  color: var(--ink-primary);
+}
+
+.font-clinical-serif {
+  font-family: var(--font-serif);
+  text-wrap: balance;
+}
+
+.font-clinical-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.legal-pad {
+  background-color: #fffbeb;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 27px,
+    rgba(15, 76, 129, 0.12) 28px
+  );
+}
+
+::selection {
+  background: rgba(15, 76, 129, 0.16);
+  color: #111827;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink-medical);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
