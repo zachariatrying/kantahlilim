@@ -76,7 +76,7 @@ export const BIOMARKERS: BiomarkerDef[] = [
   {
     id: 'glucose',
     name: 'Açlık Glukozu',
-    aliases: ['glukoz', 'açlık kan şekeri', 'kan şekeri'],
+    aliases: ['glukoz', 'açlık kan şekeri', 'kan şekeri', 'glikoz'],
     unit: 'mg/dL',
     min: 70,
     max: 99,
@@ -142,7 +142,7 @@ export const BIOMARKERS: BiomarkerDef[] = [
   {
     id: 'alt',
     name: 'ALT (SGPT)',
-    aliases: ['alt', 'sgpt', 'alanin'],
+    aliases: ['alt', 'sgpt', 'alanin aminotransferaz'],
     unit: 'U/L',
     min: 0,
     max: 40,
@@ -150,18 +150,99 @@ export const BIOMARKERS: BiomarkerDef[] = [
     lowQuestion: 'ALT değerim normal sınırda görünüyor.',
     highQuestion: 'ALT yüksekliği karaciğer yağlanması veya kullandığım ilaç/takviyelerle ilgili olabilir mi?',
   },
+  {
+    id: 'ast',
+    name: 'AST (SGOT)',
+    aliases: ['ast', 'sgot', 'aspartat'],
+    unit: 'U/L',
+    min: 0,
+    max: 40,
+    summary: 'Karaciğer ve kas dokusu sağlığını değerlendirmede ALT ile birlikte okunur.',
+    lowQuestion: 'AST değerim normal aralıkta.',
+    highQuestion: 'AST/ALT oranım karaciğer veya yoğun egzersiz kaynaklı bir durum gösteriyor mu?',
+  },
+  {
+    id: 'creatinine',
+    name: 'Kreatinin',
+    aliases: ['kreatinin', 'creatinine'],
+    unit: 'mg/dL',
+    min: 0.6,
+    max: 1.2,
+    summary: 'Böbrek süzme fonksiyonu ve kas metabolizması hakkında bilgi verir.',
+    lowQuestion: 'Kreatinin düşüklüğü kas kütlesiyle mi ilişkili?',
+    highQuestion: 'Kreatinin yüksekliği sıvı tüketimi, spor takviyesi veya böbrek fonksiyonuyla ilgili mi?',
+  },
+  {
+    id: 'folate',
+    name: 'Folat (Folik Asit)',
+    aliases: ['folat', 'folik asit', 'vitamin b9'],
+    unit: 'ng/mL',
+    min: 4.0,
+    max: 20.0,
+    summary: 'Hücre yenilenmesi ve kan yapımı için B12 ile birlikte çalışan temel vitamindir.',
+    lowQuestion: 'Folat eksikliğim B12 veya kansızlıkla birlikte değerlendirilmeli mi?',
+    highQuestion: 'Folat yüksekliği mevcut multivitamin kullanımından mı kaynaklanıyor?',
+  },
+  {
+    id: 'iron',
+    name: 'Demir (Serum)',
+    aliases: ['demir', 'serum demir', 'iron'],
+    unit: 'µg/dL',
+    min: 50,
+    max: 170,
+    summary: 'Kandaki dolaşan demir miktarını gösterir; Ferritin ile birlikte yorumlanır.',
+    lowQuestion: 'Serum demirim düşük; toplam demir bağlama kapasitesi ve ferritin birlikte nasıl?',
+    highQuestion: 'Demir yüksekliğim açlık/tokluk veya takviye saatine bağlı olabilir mi?',
+  },
+  {
+    id: 'magnesium',
+    name: 'Magnezyum',
+    aliases: ['magnezyum', 'magnesium'],
+    unit: 'mg/dL',
+    min: 1.7,
+    max: 2.5,
+    summary: 'Kas krampları, sinir iletimi ve uyku kalitesi için önemli mineraldir.',
+    lowQuestion: 'Magnezyum düşüklüğü için beslenme veya glisinat/sitrat formu gerekir mi?',
+    highQuestion: 'Magnezyum yüksekliği böbrek fonksiyonu veya takviye dozundan mı?',
+  },
+  {
+    id: 'uric_acid',
+    name: 'Ürik Asit',
+    aliases: ['ürik asit', 'uric acid'],
+    unit: 'mg/dL',
+    min: 2.5,
+    max: 7.0,
+    summary: 'Pürin metabolizmasının son ürünüdür; eklem ve böbrek sağlığı için izlenir.',
+    lowQuestion: 'Ürik asit değerim normal/düşük sınırda.',
+    highQuestion: 'Ürik asit yüksekliği için beslenmemde kırmızı et/fruktoz kısıtlaması gerekir mi?',
+  },
 ];
 
-export function parseEnabizText(raw: string): Array<{ biomarkerId: string; value: number }> {
-  const lines = raw.split(/\r?\n|;/).map((l) => l.trim()).filter(Boolean);
+export function parseLabText(raw: string): Array<{ biomarkerId: string; value: number }> {
+  const lines = raw
+    .split(/\r?\n|;/)
+    .map((l) => l.trim())
+    .filter(Boolean);
   const found: Array<{ biomarkerId: string; value: number }> = [];
   const seen = new Set<string>();
 
   for (const line of lines) {
     const lower = line.toLocaleLowerCase('tr-TR');
-    const def = BIOMARKERS.find((b) => b.aliases.some((al) => lower.includes(al)));
+    const def = BIOMARKERS.find((b) =>
+      b.aliases.some((al) => {
+        const escaped = al.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(`(^|[^a-zçğıöşü0-9])${escaped}([^a-zçğıöşü0-9]|$)`, 'i').test(lower);
+      })
+    );
     if (!def || seen.has(def.id)) continue;
-    const match = line.replace(',', '.').match(/(?:^|[\s:=])(\d+(?:\.\d+)?)/);
+
+    // Strip alias text and reference ranges (e.g. "15 - 150" or "15-150") before picking measured value
+    let cleaned = lower;
+    for (const al of def.aliases) {
+      cleaned = cleaned.replace(al, ' ');
+    }
+    cleaned = cleaned.replace(/\d+(?:[.,]\d+)?\s*[-–]\s*\d+(?:[.,]\d+)?/g, ' ');
+    const match = cleaned.replace(/,/g, '.').match(/(?:^|[\s:=])(\d+(?:\.\d+)?)/);
     if (!match) continue;
     const val = Number(match[1]);
     if (Number.isFinite(val) && val > 0) {

@@ -1,13 +1,10 @@
 # KanTahlilim — iOS & Android Mobil Uygulama Lansman Planı
 
 **Paket Kimliği:** `com.kantahlilim.app`  
-**Mimari:** Capacitor 7 (React 19 + Vite 6 + Tailwind v4)  
-**Gizlilik:** e-Nabız verisi sunucuya gönderilmez, %100 cihaz içi analiz, `NSPrivacyTracking = false`, `PrivacyInfo.xcprivacy` dahil.
-
-## Mağaza Varlıkları
-- İkon (`1024×1024`): `public/store-assets/kantahlilim_icon.png`
+**Mimari:** Capacitor 7 (React 19 + Vite 6 + Tailwind v4 + `pdfjs-dist` cihaz içi PDF ayrıştırıcı)  
+**Gizlilik & Uyum:** Veriler sunucuya gönderilmez, `NSPrivacyTracking = false`, `PrivacyInfo.xcprivacy` dahil, bağımsız uygulama (resmî kurum marka adı kullanılmaz).
 
 ## Türkçe ASO & Gelir Modeli
-- **Başlık:** `KanTahlilim: e-Nabız Okuyucu`
+- **Başlık:** `KanTahlilim: Tahlil & PDF Oku`
 - **Alt Başlık:** `Referans Aralığı & Trendler`
-- **Fiyatlandırma (Freemium):** 12 temel biyobelirteç ücretsiz; Pro (**₺49,99/ay · ₺349,99/yıl**): Sınırsız geçmiş karşılaştırma, PDF hekim soruları ve aile profilleri.
+- **Fiyatlandırma (Freemium):** 18 temel biyobelirteç ve PDF okuma ücretsiz; Pro (**₺49,99/ay · ₺349,99/yıl**): Sınırsız geçmiş karşılaştırma, aile profilleri ve hekim görüşme raporu.

@@ -1,18 +1,5 @@
-# KanTahlilim — SEO, Reklam & Büyüme Kiti
+# KanTahlilim — Pazarlama & Lansman Kiti
 
-## 1. Canlı Adres & UTM Bağlantıları
-- **Ana Adres:** `https://zachariatrying.github.io/kantahlilim/`
-- **e-Nabız Kampanyası:** `https://zachariatrying.github.io/kantahlilim/?utm_source=instagram&utm_medium=reels&utm_campaign=enabiz`
-
-## 2. Google Ads Başlıkları (≤ 30 Karakter)
-| Başlık | Karakter | Odak |
-|---|---:|---|
-| `KanTahlilim: Tahlil Okuyucu` | 27 | Marka |
-| `e-Nabız Sonuçlarını Anla` | 24 | Fayda |
-| `B12, Ferritin, D Vitamini` | 25 | Arama |
-| `Verin Cihazından Çıkmaz` | 23 | KVKK Güven |
-| `Doktoruna Sorular Hazırla` | 25 | Değer |
-
-## 3. Instagram Reels / TikTok Kancaları
-1. *"e-Nabız'dan tahlil sonucu çıkınca doktor randevusuna kadar ne anlama geldiğini merak ediyorsan: verini internete yüklemeden sadece cihazında oku."*
-2. *"Ferritin, D Vitamini ve B12 değerlerini 6 aylık değişimle yan yana gör, muayeneye hazır git."*
+- **Canlı Link:** https://zachariatrying.github.io/kantahlilim/
+- **Reels Kancası (≤3 sn):** *"Kan tahlili PDF'ini yükle, hangi değerin neden düşük olduğunu 5 saniyede gör."*
+- **Google Ads Başlıkları (≤30 kr):** `Kan Tahlili PDF Sonuç Okuyucu` `[30/30]`, `Cihaz İçi Tahlil Takipçisi` `[27/30]`, `Referans Aralığı & Trendler` `[27/30]`

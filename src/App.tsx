@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
   ClipboardPaste,
   Download,
+  FileUp,
   HelpCircle,
   Plus,
   ShieldCheck,
@@ -11,7 +12,8 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import { BIOMARKERS, parseEnabizText, type LabEntry } from './data/biomarkers';
+import { BIOMARKERS, parseLabText, type LabEntry } from './data/biomarkers';
+import { extractLabTextFromPdf } from './utils/pdfExtractor';
 
 const STORAGE_KEY = 'kantahlilim_entries_v1';
 
@@ -32,6 +34,7 @@ export default function App() {
   const [entries, setEntries] = useState<LabEntry[]>(() => loadEntries());
   const [pasteText, setPasteText] = useState('');
   const [pasteMsg, setPasteMsg] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState(BIOMARKERS[0].id);
   const [manualVal, setManualVal] = useState('');
   const [manualDate, setManualDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -43,20 +46,6 @@ export default function App() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     } catch {}
   }, [entries]);
-
-  useEffect(() => {
-    try {
-      const sp = new URLSearchParams(window.location.search);
-      const utm_source = sp.get('utm_source');
-      const utm_campaign = sp.get('utm_campaign');
-      if (utm_source || utm_campaign) {
-        localStorage.setItem(
-          'kantahlilim_utm_v1',
-          JSON.stringify({ utm_source, utm_campaign, landedAt: new Date().toISOString() })
-        );
-      }
-    } catch {}
-  }, []);
 
   const latestByMarker = useMemo(() => {
     const map = new Map<string, { latest: LabEntry; previous?: LabEntry }>();
@@ -80,26 +69,60 @@ export default function App() {
     return qs;
   }, [latestByMarker]);
 
-  const handleParsePaste = () => {
-    const parsed = parseEnabizText(pasteText);
+  const appendParsedResults = (parsed: Array<{ biomarkerId: string; value: number }>, sourceLabel: string) => {
     if (parsed.length === 0) {
-      setPasteMsg('Tanınabilir bir tahlil satırı bulunamadı (örn: "Ferritin 14", "B12 210").');
+      setPasteMsg(`${sourceLabel} içinde tanınabilir tahlil satırı bulunamadı (örn: "Ferritin 14", "B12 210").`);
       return;
     }
     const today = new Date().toISOString().slice(0, 10);
     setEntries((prev) => [
-      ...parsed.map((p, i) => ({ id: `e-${Date.now()}-${i}`, biomarkerId: p.biomarkerId, value: p.value, date: today })),
+      ...parsed.map((p, i) => ({
+        id: `e-${Date.now()}-${i}`,
+        biomarkerId: p.biomarkerId,
+        value: p.value,
+        date: today,
+      })),
       ...prev,
     ]);
-    setPasteMsg(`${parsed.length} tahlil değeri cihazına eklendi.`);
-    setPasteText('');
+    setPasteMsg(`${sourceLabel}: ${parsed.length} tahlil değeri cihazına eklendi.`);
+  };
+
+  const handleParsePaste = () => {
+    const parsed = parseLabText(pasteText);
+    appendParsedResults(parsed, 'Metin');
+    if (parsed.length > 0) setPasteText('');
+  };
+
+  const handlePdfUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPdfLoading(true);
+    setPasteMsg('PDF cihaz içinde okunuyor (sunucuya yüklenmez)...');
+    try {
+      const text = await extractLabTextFromPdf(file);
+      const parsed = parseLabText(text);
+      if (parsed.length === 0) {
+        setPasteText(text.slice(0, 1200));
+        setPasteMsg('PDF okundu ama otomatik satır eşleşmedi; metin kutusundan düzenleyebilirsin.');
+      } else {
+        appendParsedResults(parsed, `PDF (${file.name})`);
+      }
+    } catch {
+      setPasteMsg('PDF okunamadı. Dosyanın şifreli veya yalnızca taranmış görsel olmadığından emin ol.');
+    } finally {
+      setPdfLoading(false);
+      e.target.value = '';
+    }
   };
 
   const handleManualAdd = (e: FormEvent) => {
     e.preventDefault();
     const val = Number(manualVal.replace(',', '.'));
     if (!Number.isFinite(val) || val <= 0) return;
-    setEntries((prev) => [{ id: `e-${Date.now()}`, biomarkerId: selectedMarker, value: val, date: manualDate }, ...prev]);
+    setEntries((prev) => [
+      { id: `e-${Date.now()}`, biomarkerId: selectedMarker, value: val, date: manualDate },
+      ...prev,
+    ]);
     setManualVal('');
   };
 
@@ -134,7 +157,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF8F5] text-[#111827]">
-      {/* Swiss Clinical Report Masthead — Zero Colored Sticky Bar */}
       <header className="mx-auto max-w-5xl w-full px-4 sm:px-6 pt-6 pb-4 border-b-2 border-[#111827]">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -148,7 +170,7 @@ export default function App() {
                 KanTahlilim
               </h1>
               <p className="font-clinical-mono text-[11px] text-[#4B5563] mt-1">
-                Cihaz İçi e-Nabız Laboratuvar Föyü · Sunucusuz Analiz
+                Cihaz İçi Laboratuvar PDF &amp; Kan Tahlili Föyü · Sunucusuz Analiz
               </p>
             </div>
           </div>
@@ -165,28 +187,45 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-5xl w-full flex-1 px-4 sm:px-6 py-6 space-y-8">
-        {/* Split Intake Strip (Sharp 1px Swiss Grid) */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 border border-[#111827] bg-white lg:divide-x divide-y lg:divide-y-0 divide-[#111827]/20">
-          <div className="p-4 sm:p-5 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-bold">
-              <ClipboardPaste className="w-4 h-4 text-[#0F4C81]" />
-              e-Nabız Sonuç Metnini Yapıştır
+        {/* PDF Upload + Text Paste + Manual Entry */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 border border-[#111827] bg-white lg:divide-x divide-y lg:divide-y-0 divide-[#111827]/20">
+          {/* PDF Upload & Text Paste */}
+          <div className="lg:col-span-7 p-4 sm:p-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-bold">
+                <FileUp className="w-4 h-4 text-[#0F4C81]" />
+                Tahlil PDF Raporu Yükle veya Sonuç Yapıştır
+              </div>
+              <label className="inline-flex items-center gap-1.5 bg-[#0F4C81] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#0B3961] cursor-pointer">
+                <FileUp className="w-3.5 h-3.5" />
+                {pdfLoading ? 'PDF Okunuyor...' : 'PDF Rapor Seç'}
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  disabled={pdfLoading}
+                  onChange={(e) => void handlePdfUpload(e)}
+                  className="hidden"
+                />
+              </label>
             </div>
+
             <textarea
               rows={3}
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
-              placeholder={'Ferritin 14 ng/mL\nB12 215 pg/mL\nD Vitamini 19'}
+              placeholder={'Veya laboratuvar sonuç metnini yapıştır:\nFerritin 14 ng/mL\nB12 215 pg/mL\nD Vitamini 19'}
               className="w-full border border-[#111827]/25 bg-[#FAF8F5] px-3 py-2 text-xs font-clinical-mono"
             />
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] text-[#4B5563]">Metin yalnızca tarayıcıda ayrıştırılır.</span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] text-[#4B5563]">
+                PDF ve metinler %100 cihaz içinde işlenir; hiçbir sunucuya gönderilmez.
+              </span>
               <button
                 type="button"
                 onClick={handleParsePaste}
-                className="bg-[#0F4C81] px-4 py-2 text-xs font-bold text-white hover:bg-[#0B3961] cursor-pointer"
+                className="inline-flex items-center gap-1.5 border border-[#111827] bg-white px-3.5 py-1.5 text-xs font-bold hover:bg-[#111827] hover:text-white cursor-pointer"
               >
-                Metni Çözümle
+                <ClipboardPaste className="w-3.5 h-3.5" /> Metni Çözümle
               </button>
             </div>
             {pasteMsg && (
@@ -196,7 +235,8 @@ export default function App() {
             )}
           </div>
 
-          <form onSubmit={handleManualAdd} className="p-4 sm:p-5 space-y-3">
+          {/* Manual Entry */}
+          <form onSubmit={handleManualAdd} className="lg:col-span-5 p-4 sm:p-5 space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold">
               <Plus className="w-4 h-4 text-[#0F4C81]" />
               Tekil Biyobelirteç Girişi
@@ -237,7 +277,7 @@ export default function App() {
           </form>
         </section>
 
-        {/* Horizontal Clinical Assay Table (No 2x2 Rounded Cards!) */}
+        {/* Horizontal Clinical Assay Table */}
         <section>
           <div className="flex items-baseline justify-between pb-2 border-b-2 border-[#111827]">
             <h2 className="font-clinical-serif text-xl font-bold">Laboratuvar Değerlendirme Cetveli</h2>
@@ -255,7 +295,6 @@ export default function App() {
               const isHigh = latest.value > def.max;
               const statusText = isLow ? 'DÜŞÜK' : isHigh ? 'YÜKSEK' : 'REFERANS';
               const span = Math.max(1, def.max - def.min);
-              // Map value onto [0..100] where 25..75 is optimal range
               const norm = ((latest.value - def.min) / span) * 50 + 25;
               const pinPct = Math.max(4, Math.min(96, norm));
               const delta = previous ? Number((latest.value - previous.value).toFixed(2)) : null;
@@ -270,7 +309,6 @@ export default function App() {
                     <p className="font-clinical-serif italic text-sm text-[#4B5563] mt-0.5">{def.summary}</p>
                   </div>
 
-                  {/* Calibrated 3-Zone Reference Scale */}
                   <div className="md:col-span-4 space-y-1">
                     <div className="relative h-3 w-full bg-[#F3F4F6] border border-[#111827]/20 flex">
                       <div className="w-1/4 bg-rose-100/70 border-r border-[#111827]/20" />
@@ -290,7 +328,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Right Numeric Readout */}
                   <div className="md:col-span-3 flex items-center justify-between md:justify-end gap-3">
                     <div className="text-left md:text-right">
                       <div className="font-clinical-mono text-lg font-bold">
@@ -327,7 +364,6 @@ export default function App() {
           </div>
         </section>
 
-        {/* Doctor's Ruled Legal Pad */}
         {doctorQuestions.length > 0 && (
           <section className="legal-pad border border-[#111827] p-5 space-y-3">
             <h2 className="font-clinical-serif text-lg font-bold text-[#0F4C81] flex items-center gap-2">
@@ -349,7 +385,7 @@ export default function App() {
       </main>
 
       <footer className="border-t border-[#111827]/20 py-4 text-center text-[11px] text-[#4B5563] px-4">
-        KanTahlilim tıbbi teşhis veya tedavi tavsiyesi değildir; sonuçlarınızı mutlaka hekiminizle değerlendirin.
+        KanTahlilim bağımsız bir kişisel takip aracıdır; hiçbir resmî kamu kurumuyla bağlantısı yoktur. Tıbbi teşhis veya tedavi tavsiyesi değildir; sonuçlarınızı mutlaka hekiminizle değerlendirin.
       </footer>
 
       {kvkkOpen && (
