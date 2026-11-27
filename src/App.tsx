@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { GuideWidget } from './components/GuideWidget';
 import {
   AlertCircle,
   CheckCircle2,
@@ -437,6 +438,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <GuideWidget />
     </div>
   );
 }
